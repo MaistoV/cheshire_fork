@@ -22,3 +22,6 @@ nonfree-%:
 
 clean-%:
 	@$(MAKE) chs-clean-$*
+
+# Utility make aliases and new targets
+include util.mk

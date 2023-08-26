@@ -49,6 +49,14 @@ set all_in_mux [get_nets -of [ get_pins -filter { DIRECTION == IN } -of [get_cel
 set_property CLOCK_DEDICATED_ROUTE FALSE $all_in_mux
 set_property CLOCK_BUFFER_TYPE NONE $all_in_mux
 
+###################
+# Reset Generator #
+###################
+
+# set multicycle path on reset, on the FPGA we do not care about the reset anyway
+set_multicycle_path -from [get_pins i_rstgen_main/i_rstgen_bypass/synch_regs_q_reg[3]/C] 4
+set_multicycle_path -from [get_pins i_rstgen_main/i_rstgen_bypass/synch_regs_q_reg[3]/C] 3  -hold
+
 ################
 # Clock Groups #
 ################

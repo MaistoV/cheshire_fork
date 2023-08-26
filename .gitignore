@@ -32,3 +32,13 @@ target/sim/vsim/modelsim.ini
 target/sim/vsim/transcript
 target/sim/vsim/vsim.wlf
 target/sim/vsim/work/
+
+.vscode
+*dtb
+tmp*
+target/xilinx/backup
+
+# Vivado products
+.Xil
+vivado*
+webtalk*

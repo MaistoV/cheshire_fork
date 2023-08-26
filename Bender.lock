@@ -14,6 +14,17 @@ packages:
     dependencies:
     - apb
     - register_interface
+  ara:
+    revision: e92630843618f0729d9733a0af6dd5804d9d1116
+    version: null
+    source:
+      Git: https://github.com/pulp-platform/ara
+    dependencies:
+    - apb
+    - axi
+    - common_cells
+    - cva6
+    - tech_cells_generic
   axi:
     revision: bfee21757bf090ec8e358456314b0b0fd3c90809
     version: 0.39.0
@@ -83,7 +94,7 @@ packages:
       Git: https://github.com/pulp-platform/common_verification.git
     dependencies: []
   cva6:
-    revision: a34c7aa3fa0e02f0fc3578558df71b2992ad0bb1
+    revision: 646f33caee03a4e5a5f781b935a42fe9e7d959b2
     version: null
     source:
       Git: https://github.com/pulp-platform/cva6.git
@@ -93,10 +104,10 @@ packages:
     - fpnew
     - tech_cells_generic
   fpnew:
-    revision: f231041c610f270ffc03cbdac38739ddb6426572
-    version: null
+    revision: 3116391bf66660f806b45e212b9949c528b4e270
+    version: 0.7.0
     source:
-      Git: https://github.com/pulp-platform/cvfpu.git
+      Git: https://github.com/openhwgroup/cvfpu.git
     dependencies:
     - common_cells
     - fpu_div_sqrt_mvp

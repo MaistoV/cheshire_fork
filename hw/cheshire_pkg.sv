@@ -52,7 +52,7 @@ package cheshire_pkg;
   typedef bit [31:0] word_bt;
   typedef bit [63:0] doub_bt;
   typedef bit [ 9:0] dw_bt;   // data widths
-  typedef bit [ 5:0] aw_bt;   // address, ID widths or small buffers
+  typedef bit [ 6:0] aw_bt;   // address, ID widths or small buffers
 
   // Externally controllable parameters
   typedef struct packed {
@@ -78,7 +78,7 @@ package cheshire_pkg;
     shrt_bt NumExtClicIntrs;
     byte_bt NumExtOutIntrTgts;
     shrt_bt NumExtOutIntrs;
-    shrt_bt ClicIntCtlBits;
+    // shrt_bt ClicIntCtlBits;
     shrt_bt NumExtIntrSyncs;
     // AXI parameters
     aw_bt   AddrWidth;
@@ -248,6 +248,9 @@ package cheshire_pkg;
   typedef struct packed {
     aw_bt [15:0] cores;
     aw_bt dbg;
+  `ifdef ARA
+    aw_bt ara;
+  `endif // ARA
     aw_bt dma;
     aw_bt slink;
     aw_bt vga;
@@ -260,6 +263,9 @@ package cheshire_pkg;
     int unsigned i = 0;
     for (int j = 0; j < cfg.NumCores; j++) begin ret.cores[i] = i; i++; end
     ret.dbg = i;
+  `ifdef ARA
+    ret.ara = ++i;
+  `endif // ARA
     if (cfg.Dma)        begin i++; ret.dma   = i; end
     if (cfg.SerialLink) begin i++; ret.slink = i; end
     if (cfg.Vga)        begin i++; ret.vga   = i; end
@@ -444,8 +450,9 @@ package cheshire_pkg;
       CachedRegionLength    : {SizeSpm, SizeLlcOut,             cfg.Cva6ExtCieLength},
       AxiCompliant          : 1,
       SwapEndianess         : 0,
-      CLICNumInterruptSrc   : NumCoreIrqs + NumIntIntrs + cfg.NumExtClicIntrs,
-      CLICIntCtlBits        : cfg.ClicIntCtlBits,
+      // Remove CLIC interface for cv64a6_imafdcv_sv39
+      // CLICNumInterruptSrc   : NumCoreIrqs + NumIntIntrs + cfg.NumExtClicIntrs,
+      // CLICIntCtlBits        : cfg.ClicIntCtlBits,
       DmBaseAddress         : AmDbg,
       NrPMPEntries          : cfg.Cva6NrPMPEntries
     };
@@ -477,12 +484,12 @@ package cheshire_pkg;
     NumExtClicIntrs   : NumExtPlicIntrs,
     NumExtOutIntrTgts : 0,
     NumExtOutIntrs    : 0,
-    ClicIntCtlBits    : ariane_pkg::ArianeDefaultConfig.CLICIntCtlBits,
+    // ClicIntCtlBits    : ariane_pkg::ArianeDefaultConfig.CLICIntCtlBits,
     NumExtIntrSyncs   : 2,
     // Interconnect
-    AddrWidth         : 48,
+    AddrWidth         : 64, // Needed by CVA6 and ARA
     AxiDataWidth      : 64,
-    AxiUserWidth      : 2,  // AMO(2)
+    AxiUserWidth      : ariane_pkg::DCACHE_USER_WIDTH,  // WT cache only supports this
     AxiMstIdWidth     : 2,
     AxiMaxMstTrans    : 8,
     AxiMaxSlvTrans    : 8,

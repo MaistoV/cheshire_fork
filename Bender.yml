@@ -20,7 +20,8 @@ dependencies:
   clint:                    { git: "https://github.com/pulp-platform/clint.git",                  version: 0.2.0  }
   common_cells:             { git: "https://github.com/pulp-platform/common_cells.git",           version: 1.29.0 }
   common_verification:      { git: "https://github.com/pulp-platform/common_verification.git",    version: 0.2.0  }
-  cva6:                     { git: "https://github.com/pulp-platform/cva6.git",                   rev: pulp-v0.4.3 }
+  cva6:                     { git: "https://github.com/pulp-platform/cva6",                   rev: "for-vincenzo" } # Under test, TODO: possibly move to 646f33caee03a4e5a5f781b935a42fe9e7d959b2 or acc_port_rerebase
+  ara:                      { git: "https://github.com/pulp-platform/ara",                    rev: "for-vincenzo" } # Under test, TODO: possibly move to cva6-rebase
   iDMA:                     { git: "https://github.com/pulp-platform/iDMA.git",                   rev: 437ffa9    }  # TODO: master commit; use next release once out
   opentitan_peripherals:    { git: "https://github.com/pulp-platform/opentitan_peripherals.git",  version: 0.4.0  }
   register_interface:       { git: "https://github.com/pulp-platform/register_interface.git",     version: 0.4.1  }

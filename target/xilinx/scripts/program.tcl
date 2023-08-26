@@ -22,3 +22,9 @@ current_hw_device $hw_device
 set_property PROGRAM.FILE $::env(BIT) $hw_device
 program_hw_devices $hw_device
 refresh_hw_device [lindex $hw_device 0]
+
+puts "Query the design"
+# Debug
+report_property -all [get_hw_targets]
+# Search for hw probes
+refresh_hw_device -update_hw_probes false [lindex [get_hw_devices $::env(FPGA_DEVICE)] 0]

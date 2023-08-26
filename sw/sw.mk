@@ -21,9 +21,9 @@ CHS_SW_LD_DIR    ?= $(CHS_SW_DIR)/link
 CHS_SW_ZSL_TGUID := 0269B26A-FD95-4CE4-98CF-941401412C62
 CHS_SW_DTB_TGUID := BA442F61-2AEF-42DE-9233-E4D75D3ACB9D
 CHS_SW_FW_TGUID  := 99EC86DA-3F5B-4B0D-8F4B-C4BACFA5F859
-CHS_SW_DISK_SIZE ?= 16M
+CHS_SW_DISK_SIZE ?= 32M #VCU128 flash is 2GB (ug1302/Quad SPI Flash Memory)
 
-CHS_SW_FLAGS   ?= -DOT_PLATFORM_RV32 -march=rv64gc_zifencei -mabi=lp64d -mstrict-align -O2 -Wall -Wextra -static -ffunction-sections -fdata-sections -frandom-seed=cheshire -fuse-linker-plugin -flto -Wl,-flto
+CHS_SW_FLAGS   ?= -g -DOT_PLATFORM_RV32 -march=rv64gcv_zifencei -mabi=lp64d -mstrict-align -O0 -Wall -Wextra -static -ffunction-sections -fdata-sections -frandom-seed=cheshire -fuse-linker-plugin -flto -Wl,-flto
 CHS_SW_CCFLAGS ?= $(CHS_SW_FLAGS) -ggdb -mcmodel=medany -mexplicit-relocs -fno-builtin -fverbose-asm -pipe
 CHS_SW_LDFLAGS ?= $(CHS_SW_FLAGS) -nostartfiles -Wl,--gc-sections -Wl,-L$(CHS_SW_LD_DIR)
 CHS_SW_ARFLAGS ?= --plugin=$(CHS_SW_LTOPLUG)
@@ -51,6 +51,7 @@ CHS_SW_DEPS_SRCS += $(wildcard $(OTPROOT)/sw/device/lib/dif/autogen/*.c)
 #############
 
 CHS_SW_INCLUDES   ?= -I$(CHS_SW_DIR)/include $(CHS_SW_DEPS_INCS)
+CHS_SW_INCLUDES	  += -I$(shell bender path ara)/apps/riscv-tests/env
 CHS_SW_LIB_SRCS_S  = $(wildcard $(CHS_SW_DIR)/lib/*.S $(CHS_SW_DIR)/lib/**/*.S)
 CHS_SW_LIB_SRCS_C  = $(wildcard $(CHS_SW_DIR)/lib/*.c $(CHS_SW_DIR)/lib/**/*.c)
 CHS_SW_LIB_SRCS_O  = $(CHS_SW_DEPS_SRCS:.c=.o) $(CHS_SW_LIB_SRCS_S:.S=.o) $(CHS_SW_LIB_SRCS_C:.c=.o)
@@ -134,19 +135,28 @@ $(foreach link,$(patsubst $(CHS_SW_LD_DIR)/%.ld,%,$(wildcard $(CHS_SW_LD_DIR)/*.
 	$(CHS_SW_OBJCOPY) -I binary -O verilog $< $@
 
 # Create full Linux disk image
+UIMAGE_EFFECTIVE_SIZE = $(shell ls -l $(CHS_SW_DIR)/boot/install64/uImage | awk '{print $$5}')
+UIMAGE_START ?= 8192
+# UIMAGE_END ?= $$(( $(UIMAGE_START) + $(UIMAGE_EFFECTIVE_SIZE) ))
+UIMAGE_END ?= 24575
+UIMAGE_AVAILABLE_SIZE ?= $$(($$(( $(UIMAGE_END) - $(UIMAGE_START) )) * 1024))
 $(CHS_SW_DIR)/boot/linux-${BOARD}.gpt.bin: $(CHS_SW_DIR)/boot/zsl.rom.bin $(CHS_SW_DIR)/boot/cheshire_$(BOARD).dtb $(CHS_SW_DIR)/boot/install64/fw_payload.bin $(CHS_SW_DIR)/boot/install64/uImage
+	if [[ $(UIMAGE_EFFECTIVE_SIZE) -ge $(UIMAGE_AVAILABLE_SIZE) ]]; then \
+		echo "ERROR: uImage $(UIMAGE_EFFECTIVE_SIZE) B is larger than available the $(shell echo $(UIMAGE_AVAILABLE_SIZE)) B, increase UIMAGE_END past current value ($(UIMAGE_END))"; \
+		exit -1; \
+	fi
 	truncate -s $(CHS_SW_DISK_SIZE) $@
 	sgdisk --clear -g --set-alignment=1 \
 		--new=1:64:96 --typecode=1:$(CHS_SW_ZSL_TGUID) \
 		--new=2:128:159 --typecode=2:$(CHS_SW_DTB_TGUID) \
-		--new=3:2048:8191 --typecode=3:$(CHS_SW_FW_TGUID) \
-		--new=4:8192:24575 --typecode=4:8300 \
-		--new=5:24576:0 --typecode=5:8200 \
+		--new=3:2048:$$(($(UIMAGE_START)-1)) --typecode=3:$(CHS_SW_FW_TGUID) \
+		--new=4:$(UIMAGE_START):$$(($(UIMAGE_END)-1)) --typecode=4:8300 \
+		--new=5:$(UIMAGE_END):0 --typecode=5:8200 \
 		$@
 	dd if=$(word 1,$^) of=$@ bs=512 seek=64 conv=notrunc
 	dd if=$(word 2,$^) of=$@ bs=512 seek=128 conv=notrunc
 	dd if=$(word 3,$^) of=$@ bs=512 seek=2048 conv=notrunc
-	dd if=$(word 4,$^) of=$@ bs=512 seek=8192 conv=notrunc
+	dd if=$(word 4,$^) of=$@ bs=512 seek=$(UIMAGE_START) conv=notrunc
 
 #########
 # Tests #
@@ -160,3 +170,16 @@ CHS_SW_TEST_SPM_ROMH   	= $(CHS_SW_TEST_SRCS_S:.S=.rom.memh)  $(CHS_SW_TEST_SRCS
 CHS_SW_TEST_SPM_GPTH   	= $(CHS_SW_TEST_SRCS_S:.S=.gpt.memh)  $(CHS_SW_TEST_SRCS_C:.c=.gpt.memh)
 
 CHS_SW_TESTS = $(CHS_SW_TEST_DRAM_DUMP) $(CHS_SW_TEST_SPM_DUMP) $(CHS_SW_TEST_SPM_ROMH) $(CHS_SW_TEST_SPM_GPTH)
+
+#########
+# Clean #
+#########
+chs-sw-clean:
+	find $(CHS_SW_DIR) -name *.o 	| xargs rm -rvf
+	find $(CHS_SW_DIR) -name *.elf 	| xargs rm -rvf
+	find $(CHS_SW_DIR) -name *.dump | xargs rm -rvf
+	find $(CHS_SW_DIR) -name *.memh | xargs rm -rvf
+	rm -rf lib/libcheshire.a
+
+chs-linux-clean:
+	rm -rf $(CHS_SW_DIR)/boot/linux-${BOARD}.gpt.bin

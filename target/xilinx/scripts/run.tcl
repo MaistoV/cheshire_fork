@@ -7,8 +7,8 @@
 # Contraints files selection
 switch $::env(BOARD) {
   "genesys2" - "kc705" - "vc707" - "vcu128" - "zcu102" {
-    import_files -fileset constrs_1 -norecurse constraints/cheshire.xdc
-    import_files -fileset constrs_1 -norecurse constraints/$::env(BOARD).xdc
+    import_files -fileset constrs_1 -norecurse ../constraints/cheshire.xdc
+    import_files -fileset constrs_1 -norecurse ../constraints/$::env(BOARD).xdc
   }
   default {
       exit 1
@@ -19,20 +19,30 @@ switch $::env(BOARD) {
 set ips $::env(IP_PATHS)
 read_ip $ips
 
-source scripts/add_sources.tcl
+source ../scripts/add_sources.tcl
 
-set_property top ${project}_top_xilinx [current_fileset]
+set_property top cheshire_top_xilinx [current_fileset]
 
 update_compile_order -fileset sources_1
 
-set_property strategy Flow_PerfOptimized_high [get_runs synth_1]
-set_property strategy Performance_ExtraTimingOpt [get_runs impl_1]
+# set_property strategy Flow_PerfOptimized_high [get_runs synth_1]
+# set_property strategy Performance_ExtraTimingOpt [get_runs impl_1]
 
 set_property XPM_LIBRARIES XPM_MEMORY [current_project]
 
-synth_design -rtl -name rtl_1
+# synth_design -rtl -name rtl_1
 
-set_property STEPS.SYNTH_DESIGN.ARGS.RETIMING true [get_runs synth_1]
+# set_property used_in_synthesis false [get_files cheshire.xdc]
+# set_property used_in_synthesis false [get_files $::env(BOARD).xdc]
+
+if { $::env(DEBUG_RUN) eq "1" } {
+  set_property STRATEGY                                           Flow_RuntimeOptimized    [get_runs synth_1]
+  set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY          none                     [get_runs synth_1]
+  set_property STEPS.SYNTH_DESIGN.ARGS.KEEP_EQUIVALENT_REGISTERS  true                     [get_runs synth_1]
+} else {
+  set_property STRATEGY                                           $::env(SYNTH_STRATEGY)   [get_runs synth_1]
+  set_property STEPS.SYNTH_DESIGN.ARGS.RETIMING                   true                     [get_runs synth_1]
+}  
 
 # Synthesis
 launch_runs synth_1
@@ -43,14 +53,31 @@ exec mkdir -p reports/
 exec rm -rf reports/*
 
 check_timing -verbose                                                   -file reports/$project.check_timing.rpt
-report_timing -max_paths 100 -nworst 100 -delay_type max -sort_by slack -file reports/$project.timing_WORST_100.rpt
-report_timing -nworst 1 -delay_type max -sort_by group                  -file reports/$project.timing.rpt
-report_utilization -hierarchical                                        -file reports/$project.utilization.rpt
-report_cdc                                                              -file reports/$project.cdc.rpt
-report_clock_interaction                                                -file reports/$project.clock_interaction.rpt
+# report_timing -max_paths 100 -nworst 100 -delay_type max -sort_by slack -file reports/$project.timing_WORST_100.rpt
+# report_timing -nworst 1 -delay_type max -sort_by group                  -file reports/$project.timing.rpt
+report_utilization -hierarchical -hierarchical_percentage               -file reports/$project.utilization.rpt
+# report_cdc                                                              -file reports/$project.cdc.rpt
+# report_clock_interaction                                                -file reports/$project.clock_interaction.rpt
 
 # Remove black-boxed unreads
 remove_cell [get_cells -hier -filter {ORIG_REF_NAME == "unread" || REF_NAME == "unread"}]
+
+# Add further debug nets
+if { $::env(DEBUG_RUN) eq "1" } {
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/axi_req_o*                ]]
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/axi_resp_i*               ]]
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/i_frontend/pc_commit_i*   ]]
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/csr_regfile_i/mepc_q*/Q   ]]
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/csr_regfile_i/mcause_q*/Q ]]
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/csr_regfile_i/mtval_q*/Q  ]]
+  set_property MARK_DEBUG 1 [get_nets -of [get_pins i_cheshire_soc/gen_cva6_cores[0].i_core_cva6/csr_regfile_i/cycle_q*/Q  ]]
+  if { $::env(ARA) eq "1" } {
+    set_property MARK_DEBUG 1 [get_nets i_cheshire_soc/gen_cva6_cores[0].i_ara/acc_req_i* ]]
+    set_property MARK_DEBUG 1 [get_nets i_cheshire_soc/gen_cva6_cores[0].i_ara/acc_resp_o*]]
+    set_property MARK_DEBUG 1 [get_nets i_cheshire_soc/gen_cva6_cores[0].i_ara/axi_req_o* ]]
+    set_property MARK_DEBUG 1 [get_nets i_cheshire_soc/gen_cva6_cores[0].i_ara/axi_resp_i*]]
+  }
+}  
 
 # Instantiate ILA
 set DEBUG [llength [get_nets -hier -filter {MARK_DEBUG == 1}]]
@@ -102,6 +129,15 @@ if {[info exists $::env(ROUTED_DCP)] && [file exists  $::env(ROUTED_DCP)]} {
 }
 
 # Implementation
+if { $::env(DEBUG_RUN) eq "1" } {
+  set_property "steps.place_design.args.directive" "RuntimeOptimized" [get_runs impl_1]
+  set_property "steps.route_design.args.directive" "RuntimeOptimized" [get_runs impl_1]
+} else {
+  set_property STRATEGY                                    $::env(IMPL_STRATEGY)    [get_runs impl_1]
+  set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED 		       true                     [get_runs impl_1]
+  set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true                     [get_runs impl_1]
+}
+
 launch_runs impl_1
 wait_on_run impl_1
 launch_runs impl_1 -to_step write_bitstream
@@ -129,4 +165,4 @@ exec rm -rf reports/*
 check_timing                                                              -file reports/${project}.check_timing.rpt
 report_timing -max_paths 100 -nworst 100 -delay_type max -sort_by slack   -file reports/${project}.timing_WORST_100.rpt
 report_timing -nworst 1 -delay_type max -sort_by group                    -file reports/${project}.timing.rpt
-report_utilization -hierarchical                                          -file reports/${project}.utilization.rpt
+report_utilization -hierarchical -hierarchical_percentage                 -file reports/${project}.utilization.rpt
