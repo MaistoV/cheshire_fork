@@ -19,6 +19,8 @@ int main(void) {
     uint64_t vl;
     vcsr_dump_t vcsr_state = {0};
 
+    RVV_TEST_CLEAN_EXCEPTION();
+
     // Helper variables and arrays
     // None for this test
 
@@ -68,11 +70,9 @@ int main(void) {
     //////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
 
-RVV_TEST_pass:
-    RVV_TEST_PASSED() 
+#if (PRINTF == 1)
+  printf("Test SUCCESS!\r\n");
+#endif
 
-RVV_TEST_error:
-    RVV_TEST_FAILED()
-  
   return 0;
 }

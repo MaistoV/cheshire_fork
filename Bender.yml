@@ -20,7 +20,7 @@ dependencies:
   clint:                    { git: "https://github.com/pulp-platform/clint.git",                  version: 0.2.0 }
   common_cells:             { git: "https://github.com/pulp-platform/common_cells.git",           version: 1.29.0 }
   common_verification:      { git: "https://github.com/pulp-platform/common_verification.git",    version: 0.2.0  }
-  cva6:                     { git: "https://github.com/MaistoV/cva6_fork.git",                rev: "ara_cheshire" } 
+  cva6:                     { git: "https://github.com/MaistoV/cva6_fork.git",                rev: "ara_cheshire" }
   ara:                      { git: "https://github.com/MaistoV/ara_fork.git",                 rev: "ara_cheshire" }
   iDMA:                     { git: "https://github.com/pulp-platform/iDMA.git",                   rev: 437ffa9    }  # TODO: master commit; use next release once out
   opentitan_peripherals:    { git: "https://github.com/pulp-platform/opentitan_peripherals.git",  version: 0.4.0  }
@@ -43,6 +43,7 @@ sources:
   - hw/cheshire_pkg.sv
   - hw/cheshire_soc.sv
   - hw/mmu_stub.sv
+  - hw/mmu_req_gen.sv
 
   - target: any(simulation, test)
     files:

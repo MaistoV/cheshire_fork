@@ -54,11 +54,11 @@ int main(void) {
     // Loop over vstart values
     for ( uint64_t vstart_val = 0; vstart_val < vl; vstart_val++ ) {
       RVV_TEST_INIT( vl, avl );
-      
+
       preload_val = -1;
       prestart_val = -2;
 
-      // Init source memory 
+      // Init source memory
       for ( uint64_t i = 0; i < INDEXED_MEM_SIZE; i++ ) {
           address_load[i] = preload_val;
       }
@@ -88,7 +88,7 @@ int main(void) {
 
       // Load index array
       asm volatile ("vle64.v	v0   , (%0)" : "+&r"(address_index));
-      
+
       // Load prestart
       asm volatile ("vmv.v.x	v24   , %0" :: "r"(prestart_val));
 
@@ -96,7 +96,7 @@ int main(void) {
       asm volatile ("csrs     vstart, %0"   :: "r"(vstart_val) );
       // Test target: load (gather) vr group body from indexed memory
       asm volatile ("vluxei64.v	v24   , (%0), v0" : "+&r"(address_load));
-      
+
       // Store whole vr group back to memory
       asm volatile ("vse64.v	v24   , (%0)" : "+&r"(address_store));
 
@@ -120,7 +120,7 @@ int main(void) {
     // Loop over vstart values
     for ( uint64_t vstart_val = 0; vstart_val < vl; vstart_val++ ) {
       RVV_TEST_INIT( vl, avl );
-        
+
       preload_val = 1;
 
       // Init index memory
@@ -154,7 +154,7 @@ int main(void) {
       // Load index array
       asm volatile ("vle64.v	v0   , (%0)" : "+&r"(address_index));
 
-      // Load data        
+      // Load data
       asm volatile ("vle64.v	v24   , (%0)" : "+&r"(address_load));
       // Set vstart
       asm volatile ("csrs       vstart, %0"   :: "r"(vstart_val) );
@@ -187,11 +187,5 @@ int main(void) {
     //////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
 
-RVV_TEST_pass:
-    RVV_TEST_PASSED() 
-
-RVV_TEST_error:
-    RVV_TEST_FAILED()
-  
   return 0;
 }

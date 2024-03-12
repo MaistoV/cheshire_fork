@@ -90,11 +90,11 @@ int main(void) {
     //////////////////////////////////////////////////////////////////
     // TEST: Non-zero stride, zero and non-zero vstart strided stores
     //////////////////////////////////////////////////////////////////
-    
+
     // Loop over stride values
     for ( uint64_t elem_stride = 1; elem_stride <= ELEM_STRIDE_MAX; elem_stride++ ) {
         RVV_TEST_INIT( vl, avl );
-        
+
         // Loop over vstart values
         for ( uint64_t vstart_val = 0; vstart_val < vl; vstart_val++ ) {
             RVV_TEST_INIT( vl, avl );
@@ -136,7 +136,7 @@ int main(void) {
 
             RVV_TEST_CLEANUP();
         }
-      
+
       RVV_TEST_CLEANUP();
     }
 
@@ -146,11 +146,5 @@ int main(void) {
     //////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////
 
-RVV_TEST_pass:
-    RVV_TEST_PASSED() 
-
-RVV_TEST_error:
-    RVV_TEST_FAILED()
-  
   return 0;
 }

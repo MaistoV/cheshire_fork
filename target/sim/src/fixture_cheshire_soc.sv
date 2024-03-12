@@ -57,12 +57,6 @@ module fixture_cheshire_soc;
   logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_i;
   logic [SlinkNumChan-1:0][SlinkNumLanes-1:0] slink_o;
 
-  logic xvio_mmu_exception;
-  logic xvio_en_ld_st_translation;
-  // Force these in simulation
-  assign xvio_mmu_exception = '0; 
-  assign xvio_en_ld_st_translation = '0;
-  
   cheshire_soc #(
     .Cfg                ( DutCfg ),
     .ExtHartinfo        ( '0 ),
@@ -75,8 +69,6 @@ module fixture_cheshire_soc;
     .reg_ext_req_t      ( reg_req_t ),
     .reg_ext_rsp_t      ( reg_rsp_t )
   ) dut (
-    .xvio_en_ld_st_translation_i ( xvio_en_ld_st_translation ),
-    .xvio_mmu_exception_i ( xvio_mmu_exception ),
     .clk_i              ( clk       ),
     .rst_ni             ( rst_n     ),
     .test_mode_i        ( test_mode ),

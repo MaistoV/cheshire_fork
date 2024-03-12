@@ -5,10 +5,10 @@
 #######
 
 ##########################################################################################################
-# NOTE: Cheshire is configuration oriented but the current strategy requires 
-#		source code modifications of a cheshire_cfg_t struct. 
+# NOTE: Cheshire is configuration oriented but the current strategy requires
+#		source code modifications of a cheshire_cfg_t struct.
 #		Ara itself is configurable and runs with different configurations must
-#		be performed and controlled at build time. 
+#		be performed and controlled at build time.
 #		In order to avoid source code re-generation, here we define simple macros
 #		wich are, then, used bby the source code itself to build the target configuration.
 #		The basic macros and their values are:
@@ -29,9 +29,18 @@ ARA ?= 1
 ARA_NR_LANES ?= 2
 VLEN := $$(($(ARA_NR_LANES) * 1024))
 
+MMU_STUB ?= 1
+ifeq ($(MMU_STUB), 1)
+	BENDER_ARA_DEFS += --define MMU_STUB
+endif
+MMU_REQ_GEN ?= 1
+ifeq ($(MMU_REQ_GEN), 1)
+	BENDER_ARA_DEFS += --define MMU_REQ_GEN
+endif
+
 # Questa requires these to be defined regardless the value of ARA,
 # since bender includes Ara sources, and Questa builds them anyway
-BENDER_ARA_DEFS += --define ARA_NR_LANES=$(ARA_NR_LANES)  
+BENDER_ARA_DEFS += --define ARA_NR_LANES=$(ARA_NR_LANES) --define NR_LANES=$(ARA_NR_LANES)
 BENDER_ARA_DEFS += --define VLEN=$(VLEN)
 
 # Keep the WT cache regardless of Ara

@@ -12,6 +12,7 @@
 #include "dif/uart.h"
 #include "params.h"
 #include "util.h"
+#include "printf.h"
 
 int main(void) {
     char str[] = "Hello World!\r\n";
@@ -20,5 +21,8 @@ int main(void) {
     uart_init(&__base_uart, reset_freq, 115200);
     uart_write_str(&__base_uart, str, sizeof(str));
     uart_write_flush(&__base_uart);
+
+    printf("Printf here, everything's good!\n");
+
     return 0;
 }

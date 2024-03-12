@@ -18,7 +18,7 @@ packages:
     revision: null
     version: null
     source:
-      Path: /scratch/vmaisto/cheshire_fork/working_dir/ara
+      Path: /scratch/mperotti/processor/vincheshire/working_dir/ara
     dependencies:
     - apb
     - axi
@@ -97,7 +97,7 @@ packages:
     revision: null
     version: null
     source:
-      Path: /scratch/vmaisto/cheshire_fork/working_dir/cva6
+      Path: /scratch/mperotti/processor/vincheshire/working_dir/cva6
     dependencies:
     - axi
     - common_cells

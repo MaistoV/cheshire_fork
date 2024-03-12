@@ -9,14 +9,17 @@
 #################
 
 ## NOTE: this is very much not the correct way to do it, but time is tight...
+## NOTE2: DO NOT initialize here bender defs. Use the makefrag in target/common instead
 
-MMU_STUB ?= 1
-ifeq ($(MMU_STUB), 1)
-	BENDER_ARA_DEFS += --define MMU_STUB
-endif
+# FPGA (it influences sw only)
+FPGA           ?= 1
+EXTENSIVE_TEST ?= 1
+PRINTF         ?= 1
+# EEW
+EEW ?= 8
 # Test macros
 RVV_TEST_MAGIC 			?= f0f0f0f0f0f0f0f0
-RVV_TEST_ARA_NR_LANES 	?= 2 4 #8
+RVV_TEST_ARA_NR_LANES 	?= 2 4 8
 # Align to AxiDataWidth of VLSU
 ALIGN_VSTORES := $(shell echo "32 * $(ARA_NR_LANES) / 8" | bc -l | sed -E "s/\..+//g")
 
@@ -36,14 +39,14 @@ rvv-test-run-all:
 		for nrlanes in $(RVV_TEST_ARA_NR_LANES); do 	\
 			RVV_TEST_ELF=$$elf ARA_NR_LANES=$$nrlanes	\
 				$(MAKE) rvv-test-run; 					\
- 		done											\
- 	done
+		done											\
+	done
 
 rvv-test-run rvv-test-report: RVV_TEST_NAME=$(shell basename $(RVV_TEST_ELF) .spm.elf)
 rvv-test-run rvv-test-report: RVV_TEST_RESULT_DIR=$(CHS_RVV_TEST_RESULT_DIR)/$(RVV_TEST_NAME)
 rvv-test-run rvv-test-report: RVV_TEST_RESULT_FILE=$(RVV_TEST_RESULT_DIR)/results.txt
 rvv-test-run rvv-test-report: RVV_TEST_RESULT_DIR_LANES=$(RVV_TEST_RESULT_DIR)/ara_$(ARA_NR_LANES)_lanes
-rvv-test-run rvv-test-report: RVV_TEST_TRACE=$(RVV_TEST_RESULT_DIR)/ara_$(ARA_NR_LANES)_lanes/trace_hart_0.log 
+rvv-test-run rvv-test-report: RVV_TEST_TRACE=$(RVV_TEST_RESULT_DIR)/ara_$(ARA_NR_LANES)_lanes/trace_hart_0.log
 rvv-test-run rvv-test-report: VSIM_ROOT=$(RVV_TEST_RESULT_DIR_LANES)
 #	TODO: add switch to stop on first failure
 rvv-test-run: chs-sw-all $(RVV_TEST_ELF)
@@ -52,21 +55,21 @@ rvv-test-run: chs-sw-all $(RVV_TEST_ELF)
 	mkdir -p $(RVV_TEST_RESULT_DIR_LANES)
 	mkdir -p $(VSIM_ROOT)
 	BINARY=$(RVV_TEST_ELF) 					\
-	MMU_STUB=$(MMU_STUB) 					\
-		VSIM_ROOT=$(VSIM_ROOT) 				\
-		$(MAKE) chs-sim-clean chs-sim-run 
+	EEW=$(EEW)                              \
+	FPGA=$(FPGA)                            \
+	EXTENSIVE_TEST=$(EXTENSIVE_TEST)        \
+	PRINTF=$(PRINTF)                        \
+	VSIM_ROOT=$(VSIM_ROOT) 					\
+		$(MAKE) chs-sim-clean chs-sim-run
 	RVV_TEST_NAME=$(RVV_TEST_NAME) $(MAKE) rvv-test-report
 
 DATE_FORMAT ?= "+%Y-%b-%d %H:%M"
 TEST_COMMENT ?= "None"
 REPORT_FILE_ALL ?= $(CHS_RVV_TEST_RESULT_DIR)/report_all.txt
-rvv-test-report: $(RVV_TEST_TRACE) 
+rvv-test-report: $(RVV_TEST_TRACE)
 #	Compose test report
 	@printf "$(RVV_TEST_NAME)," 					>> $(RVV_TEST_RESULT_FILE)
 	@printf " ARA_NR_LANES=$(ARA_NR_LANES)," 	>> $(RVV_TEST_RESULT_FILE)
-	@grep --quiet $(RVV_TEST_MAGIC) $(RVV_TEST_TRACE) 	\
-		&& printf " PASSED," 					>> $(RVV_TEST_RESULT_FILE) \
-		|| printf " FAILED," 					>> $(RVV_TEST_RESULT_FILE)
 	@printf " $(shell date $(DATE_FORMAT))," 	>> $(RVV_TEST_RESULT_FILE)
 	@printf " Notes: \"$(TEST_COMMENT)\", " 		>> $(RVV_TEST_RESULT_FILE)
 	@printf " VSIM_ROOT=$(VSIM_ROOT)" 			>> $(RVV_TEST_RESULT_FILE)
@@ -80,7 +83,7 @@ rvv-test-report: $(RVV_TEST_TRACE)
 	@echo "	make chs-sim-waves VSIM_ROOT=$(RVV_TEST_RESULT_DIR_LANES)"
 
 
-rvv-test-clean: 
+rvv-test-clean:
 	rm -rf $(RVV_TEST_RESULT_DIR)
 
 rvv-test-clean-all:
@@ -95,7 +98,7 @@ chs-xil-util-clean:
 # 	Vivado products in target/
 	rm -rf $(CHS_XIL_DIR)/$(PROJECT)
 # 	Viviado files from top directory
-	rm -rf *.mcs *.prm .Xil/ 
+	rm -rf *.mcs *.prm .Xil/
 # 	NOTE: Keep Vivado logs
 
 ############
@@ -105,10 +108,10 @@ chs-xil-util-clean:
 # Board in      {vcu128, genesys2}
 BOARD        := vcu128
 XILINX_HOST  := bordcomputer
-# IIS bordcomputer has a fixed vivado version for the hw_server 
+# IIS bordcomputer has a fixed vivado version for the hw_server
 VIVADO_BORDCOMPUTER := vitis-2020.2 vivado
 VCU128 ?= 2
-# GDB ?= riscv64-unknown-elf-gdb 
+# GDB ?= riscv64-unknown-elf-gdb
 GDB ?= /usr/scratch/fenga3/vmaisto/cva6-sdk_fork_backup/buildroot/output/host/bin/riscv64-buildroot-linux-gnu-gdb
 
 # Select board specific variables
@@ -117,11 +120,11 @@ ifeq ($(BOARD),vcu128)
 	XILINX_PART  := xcvu37p-fsvh2892-2L-e
 	XILINX_BOARD := xilinx.com:vcu128:part0:1.0
 	FPGA_DEVICE	 := xcvu37p_0
-	IPS_NAMES    := xlnx_vio xlnx_mig_ddr4 xlnx_clk_wiz 
+	IPS_NAMES    := xlnx_vio xlnx_mig_ddr4 xlnx_clk_wiz
 # 	VCU128-01 (broken flash)
 	ifeq ($(VCU128),1)
-		XILINX_PORT	 := 3231 
-		FPGA_PATH	 := xilinx_tcf/Xilinx/091847100576A 
+		XILINX_PORT	 := 3231
+		FPGA_PATH	 := xilinx_tcf/Xilinx/091847100576A
 		GDB_LOCAL_PORT  := 3337
 		GDB_REMOTE_PORT := 3337
 #		Force BSCANE2 on board 1, since no JTAG dongle is placed there
@@ -130,11 +133,11 @@ ifeq ($(BOARD),vcu128)
 # 	VCU128-02
 	ifeq ($(VCU128),2)
 		XILINX_PORT	 := 3232
-		FPGA_PATH	 := xilinx_tcf/Xilinx/091847100638A 
+		FPGA_PATH	 := xilinx_tcf/Xilinx/091847100638A
 		GDB_LOCAL_PORT  := 3333
 		GDB_REMOTE_PORT := 3334
 	endif
-#	Choose whether to use BSCANE2 or external scanchain for the debug module 
+#	Choose whether to use BSCANE2 or external scanchain for the debug module
 	ifeq ($(DEBUG_RUN),0)
 		PROJECT := $(PROJECT)_DEBUG_RUN_0
 	endif
@@ -154,12 +157,12 @@ VIVADOENV :=  $(VIVADOENV) 						\
               SYNTH_STRATEGY=$(SYNTH_STRATEGY) 	\
               DEBUG_RUN=$(DEBUG_RUN)        	\
 			  DEBUG_NETS=$(DEBUG_NETS)			\
-              LTX="$(LTX)"          	       
+              LTX="$(LTX)"
 
 
 # Redirect to xilinx.mk targets
-chs-xil-top: 
-	$(MAKE) chs-xil-ips -j; make chs-xil-all 
+chs-xil-top:
+	$(MAKE) chs-xil-ips -j; make chs-xil-all
 
 chs-xil-ips: $(ips)
 
@@ -186,9 +189,9 @@ chs-xil-debug-gui:
 	$(VIVADOENV) $(VIVADO_BORDCOMPUTER) -nojournal -mode gui -source $(TCL_DIR)/debug_gui.tcl &
 
 %.gdb: FORCE
-	sed -E -i "s|file.+install64V?|file $(CHS_SW_DIR)/boot/install64$(IS_RVV)|g" $*.gdb 
+	sed -E -i "s|file.+install64V?|file $(CHS_SW_DIR)/boot/install64$(IS_RVV)|g" $*.gdb
 
-util-launch-gdb: scripts/gdb/running_kernel.gdb scripts/gdb/in_memory_boot.gdb 
+util-launch-gdb: scripts/gdb/running_kernel.gdb scripts/gdb/in_memory_boot.gdb
 	-ssh -L $(GDB_LOCAL_PORT):localhost:$(GDB_REMOTE_PORT) -C -N -f -l $$USER $(XILINX_HOST)
 	$(GDB) -ex "target extended-remote :$(GDB_LOCAL_PORT)"
 
@@ -206,14 +209,17 @@ chs-xil-clean-all: chs-xil-util-clean chs-xil-clean-ips
 all:
 
 # Complete fpga run
-util-fpga-run: 
+util-fpga-run:
 # 	NOTE: these targets must run sequentially
+	$(MAKE) -j1 chs-linux-clean
+	$(MAKE) -j1 chs-linux-img
+	$(MAKE) -j1 chs-xil-flash
 	$(MAKE) -j1 chs-linux-clean chs-linux-img chs-xil-flash chs-xil-program
 
 # Quick workaround for cva6-sdk not finding the DTB/FDT in this repo
 # Expose a target to update it (just touching would not work)
 dtb:
-	dtc -I dts -O dtb -i $(CHS_SW_DIR)/boot $(CHS_SW_DIR)/boot/cheshire_$(BOARD).dts -o $(CHS_SW_DIR)/boot/cheshire_$(BOARD).dtb 
+	dtc -I dts -O dtb -i $(CHS_SW_DIR)/boot $(CHS_SW_DIR)/boot/cheshire_$(BOARD).dts -o $(CHS_SW_DIR)/boot/cheshire_$(BOARD).dtb
 
 # Force rule to override the target timestamps
 FORCE:

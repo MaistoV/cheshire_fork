@@ -37,7 +37,15 @@ module tb_cheshire_soc;
         0: begin      // JTAG
           fix.vip.jtag_init();
           fix.vip.jtag_elf_run(preload_elf);
-          fix.vip.jtag_wait_for_eoc(exit_code);
+          // "fix.vip.jtag_wait_for_eoc(exit_code);" does not work,
+          // probably because of a bug in CVA6. Use this trick instead.
+          wait(tb_cheshire_soc.fix.dut.i_regs.u_scratch_2.q[0] == 1'b1);
+          exit_code = tb_cheshire_soc.fix.dut.i_regs.u_scratch_2.q >> 1;
+          if (|exit_code) begin
+            $error("[JTAG] FAILED: return code %0d", exit_code);
+          end else begin
+            $display("[JTAG] SUCCESS");
+          end
         end 1: begin  // Serial Link
           fix.vip.slink_elf_run(preload_elf);
           fix.vip.slink_wait_for_eoc(exit_code);
@@ -58,7 +66,7 @@ module tb_cheshire_soc;
     $finish;
   end
 
-     // Stop the simulation after a maximum number of cycles where the 
+     // Stop the simulation after a maximum number of cycles where the
    // program counter do not change
    int unsigned count;
    logic [63:0] old_pc;
@@ -69,16 +77,16 @@ module tb_cheshire_soc;
         stop = 1'b0;
         start = 1'b0;
         count = 0;
-        
+
         // Wait for the first instruction to commit
         wait ( fix.dut.gen_cva6_cores[0].i_core_cva6.commit_stage_i.commit_ack_o[0] == 1'b1 );
         start = 1'b1;
-        
+
         while ( stop == 1'b0 )  begin
             // Count the cycles
             while ( count < MAX_CYCLES ) begin
                 // Wait for a clock cycle
-                @(posedge fix.clk);             
+                @(posedge fix.clk);
                 // If the current pc matches the previous one
                 if ( old_pc == fix.dut.gen_cva6_cores[0].i_core_cva6.commit_stage_i.pc_o ) begin
                     count++;
@@ -99,7 +107,7 @@ module tb_cheshire_soc;
             $warning("DEBUG: Simulation has not been stopped yet, stopping now\n");
             $finish(0);
     end
-   
+
    end
 
 endmodule
